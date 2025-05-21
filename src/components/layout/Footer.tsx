@@ -2,12 +2,13 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { MessageSquare, Facebook, Twitter, Instagram, } from 'lucide-react';
 import { useApp } from '../../contexts/AppContext';
+import ChatWidget from './ChatWidget'; // Import the ChatWidget component
 
 const Footer: React.FC = () => {
   const { t } = useApp();
 
   return (
-    <footer className="bg-gray-800 dark:bg-gray-900 text-white pt-12 pb-8">
+    <footer className="bg-gray-800 dark:bg-gray-900 text-white pt-12 pb-8 relative">
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="col-span-1 md:col-span-1">
@@ -69,6 +70,7 @@ const Footer: React.FC = () => {
           <p>&copy; {new Date().getFullYear()} {t('hero.title')}. {t('footer.rights')}</p>
         </div>
       </div>
+      <ChatWidget />
     </footer>
   );
 };
