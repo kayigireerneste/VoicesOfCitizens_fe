@@ -332,7 +332,7 @@ EXPOSE 5173
 CMD ["npm", "run", "preview"]
 ```
 ### Docker Deployment (Optional)
-- **DEMO Video link**: 
+- **DEMO Video link**: https://youtu.be/9iY8oYB8qJI
 ---
 
 **Ijwi Ryabaturage** - Empowering citizens, enabling transparent governance, building a better Rwanda together. 🇷🇼
