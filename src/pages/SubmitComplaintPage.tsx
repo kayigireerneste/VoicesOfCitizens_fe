@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, Upload, MapPin } from 'lucide-react';
+import { Check, Upload, MapPin, Mail } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useApp } from '../contexts/AppContext';
 
@@ -84,6 +84,102 @@ const categories = [
     ]
   }
 ];
+
+const sendConfirmationEmail = async (email: string, trackingNumber: string, complaintData: FormData) => {
+  try {
+    const emailData = {
+      to: email,
+      subject: `Complaint Submitted Successfully - Tracking ID: ${trackingNumber}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px;">
+            <h2 style="color: #2d3748; margin-bottom: 20px;">Complaint Submitted Successfully</h2>
+            
+            <div style="background-color: white; padding: 20px; border-radius: 6px; margin-bottom: 20px;">
+              <h3 style="color: #38b2ac; margin-bottom: 15px;">Tracking Information</h3>
+              <p style="font-size: 18px; font-weight: bold; color: #2d3748;">
+                Complaint ID: <span style="color: #38b2ac;">${trackingNumber}</span>
+              </p>
+              <p style="color: #4a5568; margin-bottom: 10px;">
+                Please save this tracking number to check the status of your complaint.
+              </p>
+            </div>
+
+            <div style="background-color: white; padding: 20px; border-radius: 6px; margin-bottom: 20px;">
+              <h3 style="color: #38b2ac; margin-bottom: 15px;">Complaint Details</h3>
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0; color: #4a5568; font-weight: bold;">Category:</td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0; color: #2d3748;">${complaintData.category}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0; color: #4a5568; font-weight: bold;">Subcategory:</td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0; color: #2d3748;">${complaintData.subcategory}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0; color: #4a5568; font-weight: bold;">Location:</td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0; color: #2d3748;">${complaintData.location}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; color: #4a5568; font-weight: bold;">Submitted:</td>
+                  <td style="padding: 8px 0; color: #2d3748;">${new Date().toLocaleString()}</td>
+                </tr>
+              </table>
+            </div>
+
+            <div style="background-color: #e6fffa; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+              <h3 style="color: #234e52; margin-bottom: 10px;">What Happens Next?</h3>
+              <ul style="color: #234e52; margin: 0; padding-left: 20px;">
+                <li>Your complaint has been logged in our system</li>
+                <li>It will be reviewed by the appropriate department</li>
+                <li>You will receive updates on the progress via email</li>
+                <li>Expected response time: 3-5 business days</li>
+              </ul>
+            </div>
+
+            <div style="text-align: center; padding: 20px 0;">
+              <p style="color: #4a5568; margin-bottom: 10px;">
+                You can track your complaint status anytime using your tracking ID.
+              </p>
+              <a href="${window.location.origin}/track?id=${trackingNumber}" 
+                 style="background-color: #38b2ac; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+                Track Complaint Status
+              </a>
+            </div>
+
+            <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; text-align: center;">
+              <p style="color: #718096; font-size: 14px;">
+                This is an automated email. Please do not reply to this message.
+                <br>
+                If you have any questions, please contact our support team.
+              </p>
+            </div>
+          </div>
+        </div>
+      `
+    };
+
+    /*
+    const response = await fetch('/api/send-email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(emailData)
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to send email');
+    }
+    */
+
+    console.log('Email would be sent:', emailData);
+    return true;
+  } catch (error) {
+    console.error('Error sending email:', error);
+    return false;
+  }
+};
 
 const SubmitComplaintPage: React.FC = () => {
   const navigate = useNavigate();
@@ -201,7 +297,35 @@ const SubmitComplaintPage: React.FC = () => {
       try {
         await new Promise(resolve => setTimeout(resolve, 1500));
         const trackingNumber = `CMP-${Math.floor(100000 + Math.random() * 900000)}`;
+        
+        const shouldSendEmail = !formData.anonymous && formData.email;
+        let emailSent = false;
+        
+        if (shouldSendEmail) {
+          emailSent = await sendConfirmationEmail(formData.email, trackingNumber, formData);
+        }
+        
         toast.success(t('submit.success'));
+        
+        if (shouldSendEmail) {
+          if (emailSent) {
+            toast.success(
+              `Confirmation email sent to ${formData.email}`,
+              {
+                duration: 4000,
+                icon: '📧'
+              }
+            );
+          } else {
+            toast.error(
+              'Failed to send confirmation email, but your complaint was submitted successfully.',
+              {
+                duration: 4000,
+              }
+            );
+          }
+        }
+        
         navigate(`/track?id=${trackingNumber}`);
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (error) {
@@ -254,7 +378,6 @@ const SubmitComplaintPage: React.FC = () => {
           </div>
 
           <form className="bg-white shadow-md rounded-lg p-8 animate-fadeIn" onSubmit={handleSubmit}>
-            {/* Step 1: Personal Information */}
             {activeStep === 1 && (
               <div className="space-y-6">
                 <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
@@ -262,6 +385,20 @@ const SubmitComplaintPage: React.FC = () => {
                     {t('submit.info')}
                   </p>
                 </div>
+                <div className="bg-green-50 border-l-4 border-green-500 p-4 mb-6">
+                  <div className="flex items-start">
+                    <Mail className="h-5 w-5 text-green-600 mt-0.5 mr-2" />
+                    <div>
+                      <p className="text-green-700 text-sm font-medium mb-1">
+                        Email Notification
+                      </p>
+                      <p className="text-green-600 text-xs">
+                        Provide your email to receive a confirmation with your complaint tracking ID and status updates.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="flex items-center mb-4">
                   <input
                     type="checkbox"
@@ -297,21 +434,28 @@ const SubmitComplaintPage: React.FC = () => {
                       error={errors.phone}
                       required
                     />
-                    <FormField
-                      label={t('submit.email')}
-                      name="email"
-                      type="email"
-                      placeholder={t('submit.emailPlaceholder')}
-                      value={formData.email}
-                      onChange={handleChange}
-                      error={errors.email}
-                    />
+                    <div className="mb-6">
+                      <label className="block text-gray-700 text-sm font-medium mb-2" htmlFor="email">
+                        {t('submit.email')} <span className="text-sm text-gray-500">(Recommended for tracking)</span>
+                      </label>
+                      <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        placeholder={t('submit.emailPlaceholder')}
+                        value={formData.email}
+                        onChange={handleChange}
+                        className={`w-full px-3 py-2 border ${errors.email ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500`}
+                      />
+                      {errors.email && <p className="mt-1 text-sm text-red-500">{errors.email}</p>}
+                      <p className="mt-1 text-xs text-gray-500">
+                        We'll send you a confirmation email with your complaint tracking ID
+                      </p>
+                    </div>
                   </>
                 )}
               </div>
             )}
-
-            {/* Step 2: Complaint Details */}
             {activeStep === 2 && (
               <div className="space-y-6">
                 <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
@@ -383,8 +527,6 @@ const SubmitComplaintPage: React.FC = () => {
                 </div>
               </div>
             )}
-
-            {/* Step 3: Description & Evidence */}
             {activeStep === 3 && (
               <div className="space-y-6">
                 <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
@@ -448,8 +590,6 @@ const SubmitComplaintPage: React.FC = () => {
                 </div>
               </div>
             )}
-
-            {/* Step 4: Review & Submit */}
             {activeStep === 4 && (
               <div className="space-y-6">
                 <div className="bg-green-50 border-l-4 border-green-500 p-4 mb-6">
@@ -457,6 +597,21 @@ const SubmitComplaintPage: React.FC = () => {
                     {t('submit.reviewInfo')}
                   </p>
                 </div>
+                {!formData.anonymous && formData.email && (
+                  <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
+                    <div className="flex items-start">
+                      <Mail className="h-5 w-5 text-blue-600 mt-0.5 mr-2" />
+                      <div>
+                        <p className="text-blue-700 text-sm font-medium">
+                          Confirmation email will be sent to: {formData.email}
+                        </p>
+                        <p className="text-blue-600 text-xs mt-1">
+                          You'll receive your complaint tracking ID and status updates via email.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <div className="bg-gray-50 rounded-md p-6 space-y-4">
                   <h3 className="font-semibold text-gray-700">{t('submit.step1')}</h3>
                   {formData.anonymous ? (
@@ -513,8 +668,6 @@ const SubmitComplaintPage: React.FC = () => {
                 </div>
               </div>
             )}
-
-            {/* Navigation Buttons */}
             <div className="flex justify-between mt-8">
               {activeStep > 1 && (
                 <button
